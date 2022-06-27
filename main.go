@@ -59,7 +59,13 @@ func match(word, green, yellow, grey string) (w Word, matched bool) {
 		return
 	}
 
+	// Skip caps and apostrophes
 	if !isLowercase(word) {
+		return
+	}
+
+	// Skip grey letters
+	if strings.IndexAny(word, grey) != -1 {
 		return
 	}
 
@@ -76,6 +82,7 @@ func match(word, green, yellow, grey string) (w Word, matched bool) {
 		w[i].Color = ColorGreen
 	}
 
+	// Highlight yellow letters
 	for i := range yellow {
 		idx := strings.IndexByte(word, yellow[i])
 		if idx == -1 {
