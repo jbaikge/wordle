@@ -1,151 +1,65 @@
 package main
 
 import (
-	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
-	"strings"
-)
-
-type Color string
-
-type Letter struct {
-	Char  string
-	Color Color
-}
-
-type Word [5]Letter
-
-const (
-	ColorReset  = Color("\033[0m")
-	ColorGreen  = Color("\033[32m")
-	ColorYellow = Color("\033[33m")
-	ColorGrey   = Color("\033[90m")
 )
 
 var wordsPath = "/usr/share/dict/words"
 
-func (w *Word) Set(word string) {
-	for i := range w {
-		w[i].Char = word[i : i+1]
-		w[i].Color = ColorGrey
-	}
-}
-
-func (w Word) String() (s string) {
-	for _, letter := range w {
-		s += string(letter.Color) + letter.Char + string(ColorReset)
-	}
-	return
-}
-
 func init() {
-	flag.StringVar(&wordsPath, "path", wordsPath, "Path to words file")
-	flag.Parse()
-}
-
-func isLowercase(word string) bool {
-	for i := range word {
-		if word[i] < 'a' || word[i] > 'z' {
-			return false
-		}
-	}
-	return true
-}
-
-func match(word, green, yellow, grey string) (w Word, matched bool) {
-	if len(word) != 5 {
-		return
-	}
-
-	// Skip caps and apostrophes
-	if !isLowercase(word) {
-		return
-	}
-
-	// Skip grey letters
-	if strings.IndexAny(word, grey) != -1 {
-		return
-	}
-
-	w.Set(word)
-
-	// Handle green letters
-	for i := range green {
-		if green[i] == '.' {
-			continue
-		}
-		if word[i] != green[i] {
-			return
-		}
-		w[i].Color = ColorGreen
-	}
-
-	// Highlight yellow letters
-	for i := range yellow {
-		idx := strings.IndexByte(word, yellow[i])
-		if idx == -1 {
-			return
-		}
-		w[idx].Color = ColorYellow
-	}
-
-	matched = true
-
-	return
-}
-
-func search(green, yellow, grey string) (results []Word, err error) {
-	f, err := os.Open(wordsPath)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-
-	scanner := bufio.NewScanner(f)
-	for scanner.Scan() {
-		word, matched := match(scanner.Text(), green, yellow, grey)
-		if !matched {
-			continue
-		}
-		results = append(results, word)
-	}
-	if err = scanner.Err(); err != nil {
-		return
-	}
-
-	return
-}
-
-func main() {
-	if flag.NArg() != 3 {
-		usage("Incorrect number of arguments")
-	}
-
-	green, yellow, grey := flag.Arg(0), flag.Arg(1), flag.Arg(2)
-	if len(green) != 5 {
-		usage("Green argument must be 5 characters long")
-	}
-
-	results, err := search(green, yellow, grey)
-	if err != nil {
-		usage("Error during processing: " + err.Error())
-	}
-
-	for _, result := range results {
-		fmt.Printf("%+v\n", result)
-	}
+	flag.StringVar(&wordsPath, "words", wordsPath, "Path to wordlist")
 }
 
 func usage(msg string) {
 	fmt.Println(msg + "\n")
-	fmt.Println("Usage: wordle ..t.. la er")
+	fmt.Println("Usage: wordle guess1 layout1 [guess2 layout2 [...]]")
 	fmt.Println("")
-	fmt.Println("Green letters with dots for \"any\"")
-	fmt.Println("Yellow letters to include")
-	fmt.Println("Grey letters to exclude")
+	fmt.Println("Provide each guess (up to 5 guesses) and the response layout")
+	fmt.Println("from Wordle in the form of a string consisting of g, y, and b")
+	fmt.Println("g: Green letters")
+	fmt.Println("y: Yellow letters")
+	fmt.Println("b: Black letters")
+	fmt.Println("")
+	fmt.Println("Example:")
+	fmt.Println("wordle later bbbyb spine ybbbg")
+	fmt.Println("")
+	fmt.Println("* Meant for use with hard mode activated in Wordle")
 	fmt.Println("")
 	flag.Usage()
 	os.Exit(1)
+}
+
+func main() {
+	flag.Parse()
+	if flag.NArg() < 2 {
+		usage("Need at least two arguments")
+	}
+
+	if flag.NArg()%2 != 0 {
+		usage("Must have an even number of arguments")
+	}
+
+	words, err := wordlist(wordsPath)
+	if err != nil {
+		fmt.Printf("Error processing wordlist: %v\n", err)
+
+		if errors.Is(err, os.ErrNotExist) {
+			fmt.Println("Downloading wordlist")
+			if err = downloadWordlist(); err != nil {
+				fmt.Printf("Error downloading wordlist: %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println("Downloaded wordlist, re-run with -words words.txt")
+		}
+
+		os.Exit(1)
+	}
+
+	fmt.Println("Words in list:", len(words))
+
+	results := search(words, flag.Args())
+	fmt.Printf("%v\n", results)
 }
