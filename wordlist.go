@@ -7,6 +7,8 @@ import (
 	"os"
 )
 
+const WordLength = 5
+
 func downloadWordlist() (err error) {
 	resp, err := http.Get("https://github.com/dwyl/english-words/raw/master/words_alpha.txt")
 	if err != nil {
