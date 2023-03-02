@@ -38,7 +38,9 @@ func wordlist(path string) (words []string, err error) {
 	words = make([]string, 0, 20000)
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
-		if word := scanner.Text(); len(word) == WordLength {
+		// Calling scanner.Text() twice is twice as fast as storing the word
+		// in a variable
+		if len(scanner.Text()) == WordLength {
 			words = append(words, scanner.Text())
 		}
 	}
