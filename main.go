@@ -5,7 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strings"
 )
+
+const Columns = 80
 
 var wordsPath = "/usr/share/dict/words"
 
@@ -46,20 +49,24 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error processing wordlist: %v\n", err)
 
-		if errors.Is(err, os.ErrNotExist) {
-			fmt.Println("Downloading wordlist")
-			if err = downloadWordlist(); err != nil {
-				fmt.Printf("Error downloading wordlist: %v\n", err)
-				os.Exit(1)
-			}
-			fmt.Println("Downloaded wordlist, re-run with -words words.txt")
+		if !errors.Is(err, os.ErrNotExist) {
+			os.Exit(1)
 		}
 
+		fmt.Println("Downloading wordlist")
+		if err = downloadWordlist(); err != nil {
+			fmt.Printf("Error downloading wordlist: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println("Downloaded wordlist, re-run with -words words.txt")
 		os.Exit(1)
 	}
 
-	fmt.Println("Words in list:", len(words))
-
 	results := search(words, flag.Args())
-	fmt.Printf("%v\n", results)
+
+	// Pretty print wordlist
+	wordsPerLine := Columns / (WordLength + 1)
+	for i := 0; i < len(results); i += wordsPerLine {
+		fmt.Println(strings.Join(results[i:i+wordsPerLine], " "))
+	}
 }
