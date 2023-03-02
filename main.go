@@ -45,6 +45,12 @@ func main() {
 		usage("Must have an even number of arguments")
 	}
 
+	for _, arg := range flag.Args() {
+		if len(arg) != WordLength {
+			usage(arg + " is invalid as it is not 5 characters")
+		}
+	}
+
 	words, err := wordlist(wordsPath)
 	if err != nil {
 		fmt.Printf("Error processing wordlist: %v\n", err)
