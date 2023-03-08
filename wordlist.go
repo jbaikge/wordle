@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"io"
+	"fmt"
 	"net/http"
 	"os"
 )
@@ -22,10 +22,14 @@ func downloadWordlist() (err error) {
 	}
 	defer f.Close()
 
-	if _, err = io.Copy(f, resp.Body); err != nil {
-		return
+	scanner := bufio.NewScanner(resp.Body)
+	for scanner.Scan() {
+		if len(scanner.Bytes()) == WordLength {
+			fmt.Fprintf(f, "%s\n", scanner.Text())
+		}
 	}
-	return
+
+	return scanner.Err()
 }
 
 func wordlist(path string) (words []string, err error) {
@@ -40,7 +44,7 @@ func wordlist(path string) (words []string, err error) {
 	for scanner.Scan() {
 		// Calling scanner.Text() twice is twice as fast as storing the word
 		// in a variable
-		if len(scanner.Text()) == WordLength {
+		if len(scanner.Bytes()) == WordLength {
 			words = append(words, scanner.Text())
 		}
 	}
