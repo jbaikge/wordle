@@ -6,13 +6,18 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 )
 
 const Columns = 80
 
-var wordsPath = "/usr/share/dict/words"
+var (
+	showStats = false
+	wordsPath = "/usr/share/dict/words"
+)
 
 func init() {
+	flag.BoolVar(&showStats, "stats", showStats, "Show timing stats")
 	flag.StringVar(&wordsPath, "words", wordsPath, "Path to wordlist")
 }
 
@@ -51,6 +56,7 @@ func main() {
 		}
 	}
 
+	wordlistStart := time.Now()
 	words, err := wordlist(wordsPath)
 	if err != nil {
 		fmt.Printf("Error processing wordlist: %v\n", err)
@@ -67,8 +73,15 @@ func main() {
 		fmt.Println("Downloaded wordlist, re-run with -words words.txt")
 		os.Exit(1)
 	}
+	if showStats {
+		fmt.Printf("Wordlist setup: %s\n", time.Since(wordlistStart))
+	}
 
+	searchStart := time.Now()
 	results := search(words, flag.Args())
+	if showStats {
+		fmt.Printf("Search: %s\n", time.Since(searchStart))
+	}
 
 	// Pretty print wordlist
 	wordsPerLine := Columns / (WordLength + 1)
