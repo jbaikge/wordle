@@ -85,6 +85,9 @@ func main() {
 
 	// Pretty print wordlist
 	wordsPerLine := Columns / (WordLength + 1)
+	if max := cap(results); max < wordsPerLine {
+		wordsPerLine = max
+	}
 	for i := 0; i < len(results); i += wordsPerLine {
 		fmt.Println(strings.Join(results[i:i+wordsPerLine], " "))
 	}
